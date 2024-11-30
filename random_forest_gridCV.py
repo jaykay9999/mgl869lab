@@ -1,9 +1,10 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
 from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.metrics import classification_report, roc_auc_score, roc_curve, precision_recall_fscore_support
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Load the data
 df = pd.read_csv('combined_file_metrics_with_buggy_final_new_drop_columns.csv')
@@ -15,7 +16,7 @@ df = df.drop(columns=columns_to_drop)
 # Drop rows with NaN values
 df = df.dropna()
 
-# Define the train-test pairs based on the order of versions
+# Use unique versions from train_test_pairs
 train_test_pairs = [
     ("2.0.0", "2.1.0"),
     ("2.1.0", "2.2.0"),
@@ -24,6 +25,7 @@ train_test_pairs = [
     ("3.0.0", "3.1.0"),
     ("3.1.0", "4.0.0"),
 ]
+unique_versions = sorted(set([pair[0] for pair in train_test_pairs] + [pair[1] for pair in train_test_pairs]))
 
 # Hyperparameter grid for Random Forest
 param_grid = {
@@ -36,87 +38,118 @@ param_grid = {
 
 # Store overall metrics
 overall_metrics = []
+combined_feature_importances = pd.DataFrame()
 
-# Iterate through the train-test pairs
-for train_version, test_version in train_test_pairs:
-    print(f"\nTraining on version {train_version}, testing on version {test_version}")
+# Iterate through each specified version
+for version in unique_versions:
+    print(f"\nProcessing version: {version}")
     
-    # Split the data into training and testing based on version
-    train_data = df[df['version'] == train_version]
-    test_data = df[df['version'] == test_version]
+    # Filter data for the current version
+    version_data = df[df['version'] == version]
     
-    # Debugging: Check if datasets are empty
-    if train_data.empty:
-        print(f"Training data is empty for version {train_version}. Skipping...")
-        continue
-    if test_data.empty:
-        print(f"Testing data is empty for version {test_version}. Skipping...")
+    # Skip if version data is empty
+    if version_data.empty:
+        print(f"Version {version} has no data. Skipping...")
         continue
     
-    # Drop 'version' column right before training
-    X_train = train_data.drop(columns=['buggy', 'version'])
-    y_train = train_data['buggy']
-    X_test = test_data.drop(columns=['buggy', 'version'])
-    y_test = test_data['buggy']
+    # Drop 'version' column
+    X = version_data.drop(columns=['buggy', 'version'])
+    y = version_data['buggy']
     
-    # Feature selection: Select top K features based on ANOVA F-statistic
-    k = min(5, X_train.shape[1])  # Select top 5 features or less if fewer columns
-    selector = SelectKBest(score_func=f_classif, k=k)
-
-    # Fit the selector and transform the training data
-    X_train_selected = selector.fit_transform(X_train, y_train)
-    X_test_selected = selector.transform(X_test)
-
-    # Get the names of the selected features
-    selected_feature_names = X_train.columns[selector.get_support()]
-    print(f"Top {k} selected features for training version {train_version}: {list(selected_feature_names)}")
-
-    # Hyperparameter tuning using GridSearchCV
-    grid_search = GridSearchCV(
-        estimator=RandomForestClassifier(),
-        param_grid=param_grid,
-        scoring='roc_auc',  # Optimize for AUC
-        cv=5,  # 5-fold cross-validation
-        verbose=1,
-        n_jobs=-1  # Use all available CPU cores
-    )
+    # Define the Random Forest model
+    base_model = RandomForestClassifier(random_state=42)
     
-    # Fit GridSearchCV
-    grid_search.fit(X_train_selected, y_train)
+    # Perform 10-fold cross-validation
+    skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+    auc_scores = []
+    precisions = []
+    recalls = []
+    f1_scores = []
+    feature_importances = np.zeros(X.shape[1])  # Initialize feature importance array
     
-    # Best model from grid search
-    best_model = grid_search.best_estimator_
-    print(f"Best Parameters: {grid_search.best_params_}")
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        
+        # Feature selection: Select top K features based on ANOVA F-statistic
+        k = min(5, X_train.shape[1])  # Select top 5 features or fewer if fewer columns
+        selector = SelectKBest(score_func=f_classif, k=k)
+        X_train_selected = selector.fit_transform(X_train, y_train)
+        X_test_selected = selector.transform(X_test)
+        selected_indices = selector.get_support(indices=True)
+        
+        # Hyperparameter tuning using GridSearchCV
+        grid_search = GridSearchCV(
+            estimator=base_model,
+            param_grid=param_grid,
+            scoring='roc_auc',
+            cv=5,  # Inner 5-fold cross-validation
+            verbose=1,
+            n_jobs=-1
+        )
+        grid_search.fit(X_train_selected, y_train)
+        best_model = grid_search.best_estimator_
+        
+        # Train the best model on the current fold
+        best_model.fit(X_train_selected, y_train)
+        
+        # Accumulate feature importance
+        if hasattr(best_model, "feature_importances_"):
+            feature_importances[selected_indices] += best_model.feature_importances_
+        
+        # Predict probabilities and classes
+        y_pred = best_model.predict(X_test_selected)
+        y_pred_proba = best_model.predict_proba(X_test_selected)[:, 1]
+        
+        # Calculate AUC
+        auc = roc_auc_score(y_test, y_pred_proba)
+        auc_scores.append(auc)
+        
+        # Calculate precision, recall, and F1-score
+        precision, recall, f1, _ = classification_report(y_test, y_pred, output_dict=True)['1'].values()
+        precisions.append(precision)
+        recalls.append(recall)
+        f1_scores.append(f1)
     
-    # Predict on the test set
-    y_pred = best_model.predict(X_test_selected)
-    y_pred_proba = best_model.predict_proba(X_test_selected)[:, 1]  # Probability for class 1
+    # Normalize feature importance (average across folds)
+    feature_importances /= skf.get_n_splits()
+    selected_feature_names = X.columns[selector.get_support()] 
+    feature_importance_df = pd.DataFrame({
+        "Feature": selected_feature_names,
+        "Importance": feature_importances[selector.get_support()],
+        "Version": version
+    }).sort_values(by="Importance", ascending=False)
     
-    # Calculate AUC
-    auc = roc_auc_score(y_test, y_pred_proba)
+    # Append to the combined DataFrame
+    combined_feature_importances = pd.concat([combined_feature_importances, feature_importance_df], ignore_index=True)
     
-    # Calculate precision, recall, and F1-score
-    precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
-    
-    # Save metrics
+    # Store the average metrics for the version
     overall_metrics.append({
-        "train_version": train_version,
-        "test_version": test_version,
-        "AUC": auc,
-        "Precision": precision,
-        "Recall": recall,
-        "F1-Score": f1
+        "version": version,
+        "Mean AUC": np.mean(auc_scores),
+        "Mean Precision": np.mean(precisions),
+        "Mean Recall": np.mean(recalls),
+        "Mean F1-Score": np.mean(f1_scores)
     })
     
-    # Print the classification report
-    print(classification_report(y_test, y_pred))
-    
-    # Plot the ROC curve
-    fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
-    plt.plot(fpr, tpr, label=f'{train_version} -> {test_version} (AUC = {auc:.2f})')
+    # Plot the average ROC curve for this version
+    mean_fpr = np.linspace(0, 1, 100)
+    tprs = []
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        X_train_selected = selector.fit_transform(X_train, y_train)
+        X_test_selected = selector.transform(X_test)
+        best_model.fit(X_train_selected, y_train)
+        y_pred_proba = best_model.predict_proba(X_test_selected)[:, 1]
+        fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+        tprs.append(np.interp(mean_fpr, fpr, tpr))
+    mean_tpr = np.mean(tprs, axis=0)
+    plt.plot(mean_fpr, mean_tpr, label=f'Version {version} (AUC = {np.mean(auc_scores):.2f})')
+
 
 # Finalize and display the ROC curve
-plt.title('ROC Curve')
+plt.title('Average ROC Curve (10-Fold Cross-Validation)')
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc='best')
@@ -127,7 +160,12 @@ plt.show()
 df_metrics = pd.DataFrame(overall_metrics)
 
 # Save overall metrics to a CSV file
-df_metrics.to_csv('random_forest_model_performance_with_tuning.csv', index=False)
+df_metrics.to_csv('random_forest_gridcv_anova_performance_metrics.csv', index=False)
+
+# Save combined feature importances to a single CSV file
+combined_feature_importances.to_csv('random_forest_gridcv_anova_combined_feature_importances.csv', index=False)
 
 print("\nOverall Metrics:")
 print(df_metrics)
+print("\nCombined Feature Importances saved to 'random_forest_gridcv_anova_combined_feature_importances.csv'")
+
