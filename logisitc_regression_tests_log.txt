@@ -1,0 +1,133 @@
+Logistic regression no optimization max iteration =1000 :
+
+
+
+PS C:\Users\jasem\Desktop\mgl869_lab\correct_pipeline> python .\logistic_regression.py
+C:\Users\jasem\Desktop\mgl869_lab\correct_pipeline\logistic_regression.py:7: DtypeWarning: Columns (9,10,37) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv('combined_file_metrics_with_buggy_final_new_drop_columns.csv')
+
+Training on version 2.0.0, testing on version 2.1.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.94      0.96      0.95      4187
+           1       0.31      0.20      0.25       351
+
+    accuracy                           0.90      4538
+   macro avg       0.62      0.58      0.60      4538
+weighted avg       0.89      0.90      0.89      4538
+
+
+Training on version 2.1.0, testing on version 2.2.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.94      0.99      0.96      4484
+           1       0.58      0.15      0.24       344
+
+    accuracy                           0.93      4828
+   macro avg       0.76      0.57      0.60      4828
+weighted avg       0.91      0.93      0.91      4828
+
+
+Training on version 2.2.0, testing on version 2.3.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.96      0.99      0.98      4688
+           1       0.42      0.21      0.28       219
+
+    accuracy                           0.95      4907
+   macro avg       0.69      0.60      0.63      4907
+weighted avg       0.94      0.95      0.94      4907
+
+
+Training on version 2.3.0, testing on version 3.0.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.51      0.94      0.66      4158
+           1       0.29      0.03      0.05      3823
+
+    accuracy                           0.50      7981
+   macro avg       0.40      0.48      0.36      7981
+weighted avg       0.41      0.50      0.37      7981
+
+
+Training on version 3.0.0, testing on version 3.1.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.99      0.51      0.67      7854
+           1       0.02      0.75      0.05       127
+
+    accuracy                           0.51      7981
+   macro avg       0.51      0.63      0.36      7981
+weighted avg       0.98      0.51      0.66      7981
+
+
+Training on version 3.1.0, testing on version 4.0.0
+C:\Users\jasem\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\linear_model\_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+              precision    recall  f1-score   support
+
+           0       0.99      1.00      0.99      7891
+           1       0.26      0.07      0.11        90
+
+    accuracy                           0.99      7981
+   macro avg       0.63      0.53      0.55      7981
+weighted avg       0.98      0.99      0.98      7981
+
+
+Overall Metrics:
+  train_version test_version       AUC  Precision    Recall  F1-Score
+0         2.0.0        2.1.0  0.712971   0.311404  0.202279  0.245250
+1         2.1.0        2.2.0  0.765226   0.576087  0.154070  0.243119
+2         2.2.0        2.3.0  0.746847   0.422018  0.210046  0.280488
+3         2.3.0        3.0.0  0.473229   0.288235  0.025634  0.047081
+4         3.0.0        3.1.0  0.694589   0.024026  0.748031  0.046557
+5         3.1.0        4.0.0  0.654335   0.260870  0.066667  0.106195
+
+----------------------------------------------------------------------------------------------------------------
+
