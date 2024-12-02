@@ -74,7 +74,18 @@ for version in unique_versions:
         
         # Accumulate feature importance if available
         if hasattr(best_pipeline[-1], "feature_importances_"):
-            feature_importances += best_pipeline[-1].feature_importances_
+            temp_importances = np.zeros(X.shape[1])  # Temporary array for all features
+            
+            # Check if the pipeline includes a feature selector
+            if hasattr(best_pipeline[0], 'get_support'):
+                selected_features = best_pipeline[0].get_support(indices=True)
+                temp_importances[selected_features] = best_pipeline[-1].feature_importances_
+            else:
+                temp_importances = best_pipeline[-1].feature_importances_
+            
+            # Accumulate the mapped feature importances
+            feature_importances += temp_importances
+
         
         # Predict probabilities and classes
         y_pred = tpot.predict(X_test)

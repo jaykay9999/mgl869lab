@@ -60,7 +60,7 @@ for version in unique_versions:
         
         # Use TPOT for feature selection and hyperparameter optimization
         tpot = TPOTClassifier(
-            generations=5,
+            generations=1,
             population_size=20,
             verbosity=2,
             random_state=42,
@@ -80,7 +80,19 @@ for version in unique_versions:
         
         # Accumulate coefficients if available
         if hasattr(best_pipeline[-1], "coef_"):
-            coefficients += best_pipeline[-1].coef_[0]
+            # Initialize a temporary array for the selected features
+            temp_coefficients = np.zeros(X.shape[1])
+            
+            # Map coefficients back to the original feature space
+            if hasattr(best_pipeline[0], 'get_support'):  # Check if the first step has a feature selector
+                selected_features = best_pipeline[0].get_support(indices=True)
+                temp_coefficients[selected_features] = best_pipeline[-1].coef_[0]
+            else:
+                temp_coefficients = best_pipeline[-1].coef_[0]
+            
+            # Add to the overall coefficients array
+            coefficients += temp_coefficients
+
         
         # Predict probabilities and classes
         y_pred = tpot.predict(X_test)
