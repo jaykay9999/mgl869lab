@@ -60,7 +60,7 @@ for version in unique_versions:
         
         # Use TPOT for feature selection and hyperparameter optimization
         tpot = TPOTClassifier(
-            generations=1,
+            generations=5,
             population_size=20,
             verbosity=2,
             random_state=42,
